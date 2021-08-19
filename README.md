@@ -5,7 +5,6 @@
 2. Из репозитория epel установить spawn-fcgi и переписать init-скрипт на unit-файл (имя service должно называться так же: spawn-fcgi).
 
 3. Дополнить unit-файл httpd (он же apache) возможностью запустить несколько инстансов сервера с разными конфигурационными файлами
-Все необходимые файлы находятся в папке httpd
 
 Выполнение:
 1. В папке files созданы все необходимые файлы, копируются во время vagrant up:	  
@@ -40,8 +39,42 @@
         dnf install epel-release
         dnf install -y spawn-fcgi
         dnf install -y php php-cli mod_fcgid httpd
+        
+   Прописать в файле /etc/sysconfig/spawn-fcgi
+   
+        SOCKET=/var/run/php-fcgi.sock
+        OPTIONS="-u apache -g apache -s $SOCKET -S -M 0600 -C 32 -F 1 -P /var/run/spawn-fcgi.pid -- /usr/bin/php-cgi"
 
-3.
+   И создать службу /etc/systemd/system/spawn-fcgi.service 
+   
+        [Unit]
+        Description=Spawn-fcgi startup service by Otus
+        After=network.target
+        [Service]
+        Type=simple
+        PIDFile=/var/run/spawn-fcgi.pid
+        EnvironmentFile=/etc/sysconfig/spawn-fcgi
+        ExecStart=/usr/bin/spawn-fcgi -n $OPTIONS
+        KillMode=process
+        [Install]
+        WantedBy=multi-user.target
+   
+   
+3. Все необходимые файлы находятся в папке httpd  
+      
+      Конфиги first.conf и second.conf нужно прописать в /etc/httpd/conf    
+      В /etc/sysconfig/ скопировать 2 файла окружения https://github.com/MaxOOOOON/systemd/blob/main/httpd/httpd-first и https://github.com/MaxOOOOON/systemd/blob/main/httpd/httpd-second    
+      В /etc/systemd/system/ создать файл службы https://github.com/MaxOOOOON/systemd/blob/main/httpd/httpd%40.service
+      
+      и запустить 
+      
+        systemctl start httpd@first
+        systemctl start httpd@second
+       
+      ![изображение](https://user-images.githubusercontent.com/36797330/130152145-99f219ea-3611-4de0-bf82-52c9a911a1d3.png)
+
+      ![изображение](https://user-images.githubusercontent.com/36797330/130152167-2a294ad2-3a04-4f7c-9cb6-61ae7d09e96a.png)
+
 
 
 
